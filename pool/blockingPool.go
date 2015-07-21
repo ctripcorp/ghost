@@ -82,6 +82,7 @@ func (p *blockingPool) put(conn net.Conn) error {
 	return nil
 }
 
+//
 func (p *blockingPool) Close() {}
 
 func (p *blockingPool) Len() {}
