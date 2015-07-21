@@ -1,6 +1,10 @@
 package pool
 
 import "net"
+import "errors"
+
+//ErrClosed occurs when Len() or Get() is called after Close() is
+var ErrClosed = errors.New("pool is closed")
 
 //Pool interface describes a connection pool.
 type Pool interface {
