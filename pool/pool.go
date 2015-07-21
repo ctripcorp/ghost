@@ -13,7 +13,7 @@ type Pool interface {
 	//Close closes the pool and all its connections.
 	//Call Get() when the pool is closed is counted as an error.
 	Close()
-	
+
 	//Len returns the current number of connections in the pool,
 	//including those that are in use or free.
 	Len() int
