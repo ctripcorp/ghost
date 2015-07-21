@@ -82,7 +82,8 @@ func (p *blockingPool) put(conn net.Conn) error {
 	return nil
 }
 
-//
+//Close set connection channel to nil and close all the relative connections.
 func (p *blockingPool) Close() {}
 
+//Len return the number of current active(in use or available) connections.
 func (p *blockingPool) Len() {}
