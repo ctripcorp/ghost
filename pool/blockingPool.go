@@ -6,7 +6,7 @@ import "fmt"
 import "sync"
 
 //blockingPool implements the Pool interface.
-//Connestions from blockingPool implement blocking mechanism that is derived from buffered channel.
+//Connestions from blockingPool offer a kind of blocking mechanism that is derived from buffered channel.
 type blockingPool struct {
 	//mutex is to make closing the pool and recycling the connection an atomic operation
 	mutex sync.Mutex
@@ -19,7 +19,7 @@ type blockingPool struct {
 }
 
 //Factory is a function to create new connections
-//which is provided by user
+//which is provided by the user
 type Factory func() (net.Conn, error)
 
 func NewBlockingPool(initCap, maxCap int, factory Factory) (net.Conn, error) {
