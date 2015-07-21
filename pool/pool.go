@@ -7,7 +7,7 @@ type Pool interface {
 	//Get returns an available(new or reused) connection from the pool.
 	//It blocks when no connection is available.
 	//Closing a connection puts the connection back to the pool.
-	//Duplicated close is endurable as the second close is ignored.
+	//Duplicated close of a connection is endurable as the second close is ignored.
 	Get() (net.Conn, error)
 
 	//Close closes the pool and all its connections.
