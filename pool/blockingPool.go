@@ -4,6 +4,7 @@ import "net"
 import "errors"
 import "sync"
 import "time"
+import "fmt"
 
 //blockingPool implements the Pool interface.
 //Connestions from blockingPool offer a kind of blocking mechanism that is derived from buffered channel.
@@ -12,7 +13,7 @@ type blockingPool struct {
 	mutex sync.Mutex
 
 	//timeout to Get, default to 3
-	timeout int
+	timeout time.Duration
 
 	//storage for net.Conn connections
 	conns chan net.Conn
@@ -35,7 +36,7 @@ func NewBlockingPool(initCap, maxCap int, factory Factory) (Pool, error) {
 	newPool := &blockingPool{
 		timeout: 3,
 		conns: make(chan net.Conn, maxCap),
-		factory: factory
+		factory: factory,
 	}
 
 	for i := 0; i < initCap; i++ {
@@ -59,7 +60,7 @@ func (p *blockingPool) Get() (net.Conn, error) {
 	select {
 	case conn := <-conns:
 		return conn, nil/*not wrapped yet*/
-	case <-time.After(time.Second*p.timeout) {
+	case <-time.After(time.Second*p.timeout):
 		return nil, errors.New("timeout")
 	}
 }
@@ -82,8 +83,27 @@ func (p *blockingPool) put(conn net.Conn) error {
 	return nil
 }
 
+func (p *blockingPool) compensate() error {
+	conn, err := p.factory()
+	if err != nil {
+		//The author hopes this error never happends.
+		//p.Close()
+		return fmt.Errorf("error counted when calling factory: %s", err)
+	}
+
+	//in case that pool is closed and pool.conns is set to nil
+	conns := p.conns
+	if conns == nil {
+		return nil
+	}
+	p.conns <-conn
+	return nil
+}
+
 //Close set connection channel to nil and close all the relative connections.
 func (p *blockingPool) Close() {}
 
 //Len return the number of current active(in use or available) connections.
-func (p *blockingPool) Len() {}
+func (p *blockingPool) Len() int {
+	return 0;
+}
