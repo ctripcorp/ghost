@@ -26,8 +26,10 @@ type blockingPool struct {
 //which is provided by the user
 type Factory func() (net.Conn, error)
 
-//Create a new blocking pool.
-//As no new connections would be made when the pool is busy, maxCap does not make sense yet.
+//Create a new blocking pool. As no new connections would be made when the pool is busy, 
+//the number of connections of the pool is kept no more than initCap and maxCap does not 
+//make senss but the api is reserved. The timeout to block Get() is set to 3 by default 
+//concerning that it is better to be related with Get() method.
 func NewBlockingPool(initCap, maxCap int, factory Factory) (Pool, error) {
 	if initCap < 0 || maxCap < 1 || initCap > maxCap {
 		return nil, errors.New("invalid capacity settings")
@@ -50,6 +52,7 @@ func NewBlockingPool(initCap, maxCap int, factory Factory) (Pool, error) {
 	return newPool, nil
 }
 
+//Get blocks for an available connection.
 func (p *blockingPool) Get() (net.Conn, error) {
 	//in case that pool is closed and pool.conns is set to nil
 	conns := p.conns
@@ -83,6 +86,7 @@ func (p *blockingPool) put(conn net.Conn) error {
 	return nil
 }
 
+//Create a new connection and put it into the channel.
 func (p *blockingPool) compensate() error {
 	conn, err := p.factory()
 	if err != nil {
@@ -101,9 +105,11 @@ func (p *blockingPool) compensate() error {
 }
 
 //Close set connection channel to nil and close all the relative connections.
+//Yet not implemented.
 func (p *blockingPool) Close() {}
 
 //Len return the number of current active(in use or available) connections.
+//Yet not implemented.
 func (p *blockingPool) Len() int {
 	return 0;
 }
