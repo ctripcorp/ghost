@@ -62,7 +62,7 @@ func (p *blockingPool) Get() (net.Conn, error) {
 
 	select {
 	case conn := <-conns:
-		return conn, nil/*not wrapped yet*/
+		return p.wrap(conn), nil/*not wrapped yet*/
 	case <-time.After(time.Second*p.timeout):
 		return nil, errors.New("timeout")
 	}
