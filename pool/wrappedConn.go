@@ -10,6 +10,9 @@ type WrappedConn struct {
 	unusable bool
 }
 
+//Close put the connection back to the pool.
+//If the connection is marked unusable, Close close the connection and call 
+//blockingPool.compensate which create a new connection and put it instead.
 func (c WrappedConn) Close() error {
 	if c.unusable {
 		c.pool.compensate()
@@ -19,4 +22,14 @@ func (c WrappedConn) Close() error {
 		return nil
 	}
 	return c.pool.put(c.Conn)
+}
+
+//Write checkout the error returned from the origin Write() method.
+//If the error is not nil, the connection is marked as unusable.
+func (c WrappedConn) Write(b []byte) (n int, err error) {
+	n, err = c.Conn.Write(b)
+	if err != nil {
+		c.unusable = true
+	}
+	return
 }
