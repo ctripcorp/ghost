@@ -28,7 +28,7 @@ type Factory func() (net.Conn, error)
 
 //Create a new blocking pool. As no new connections would be made when the pool is busy, 
 //the number of connections of the pool is kept no more than initCap and maxCap does not 
-//make senss but the api is reserved. The timeout to block Get() is set to 3 by default 
+//make sense but the api is reserved. The timeout to block Get() is set to 3 by default 
 //concerning that it is better to be related with Get() method.
 func NewBlockingPool(initCap, maxCap int, factory Factory) (Pool, error) {
 	if initCap < 0 || maxCap < 1 || initCap > maxCap {
