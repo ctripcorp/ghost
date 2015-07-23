@@ -39,3 +39,7 @@ lens, err := conn.Write(bytes)
 conn.Close()
 
 ```
+
+## Shared File
+
+### Example
