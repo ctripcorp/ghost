@@ -33,6 +33,7 @@ conn, err := p.Get()
 lens, err := conn.Write(bytes)
 
 // You can also use other net.Conn's methods
+// The underlying connection is only wrapped with all features reserved.
 
 // Put it back to the pool by closing the connection
 conn.Close()
