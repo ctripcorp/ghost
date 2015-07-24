@@ -34,6 +34,15 @@ func (c *WrappedConn) Write(b []byte) (n int, err error) {
 	return
 }
 
+//Read works the same as Write.
+func (c *WrappedConn) Read(b []byte) (n int, err error) {
+	n, err = c.Conn.Read(b)
+	if err != nil {
+		c.unusable = true
+	}
+	return
+}
+
 func (p *blockingPool) wrap(conn net.Conn) net.Conn {
 	return &WrappedConn{
 		conn,
