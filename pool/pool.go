@@ -4,7 +4,10 @@ import "net"
 import "errors"
 
 //ErrClosed occurs when Len() or Get() is called after Close() is
-var ErrClosed = errors.New("pool is closed")
+var (
+	ErrClosed = errors.New("pool is closed")
+	ErrTimeout = errors.New("timeout")
+)
 
 //Pool interface describes a connection pool.
 type Pool interface {
