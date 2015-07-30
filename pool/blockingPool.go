@@ -82,15 +82,18 @@ func (p *blockingPool) put(conn *WrappedConn) error {
 		//conn.Conn is possibly nil coz factory() may fail, in which case conn is immediately 
 		//put back to the pool
 		if conn.Conn != nil {
-			return conn.Conn.Close()
-		} else {
-			return nil
+			conn.Conn.Close()
+			conn.Conn = nil
 		}
+		return ErrClosed
 	}
 
 	//if conn is marked unusable, underlying net.Conn is set to nil
 	if conn.unusable {
-		conn.Conn = nil
+		if conn.Conn != nil {
+			conn.Conn.Close()
+			conn.Conn = nil
+		}
 	}
 
 	//It is impossible to block as number of connections is never more than length of channel
