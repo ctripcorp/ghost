@@ -67,6 +67,7 @@ func (p *blockingPool) Get() (net.Conn, error) {
 				return nil, err
 			}
 		}
+		conn.unusable = false
 		return conn, nil
 	case <-time.After(time.Second*p.timeout):
 		return nil, ErrTimeout
