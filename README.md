@@ -4,7 +4,7 @@ As _ghost_ is forced to be external depandency free,
 it is easy to run go codes with _ghost_ without downloading varieties of extra libs.
 This implies that _ghost_ might be a best solution for internal enterprise servers with internet cut off
 or some users who have harsh conditions to access abroad, especially CHN developers.
-## Connection Pool_
+## Connection Pool
 
 ### Example
 
@@ -58,7 +58,12 @@ type Recursion func(nSub1 time.Duration) (n time.Duration)
 ```go
 //Retry at most 3 times.
 //Sleeps for 1 second before first retry, and sleep time doubles after each time it retries
-retries, errors := retry.Attempt(3, 1*time.Second, yourOperation)
+retries, errors := retry.Attempt(3, 1*time.Second, func() error{
+	//if error is counted, 
+	//	return the error
+	//if operation is success
+	//	return nil
+})
 ```
 
 ### Custom
