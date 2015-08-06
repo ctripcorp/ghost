@@ -1,10 +1,10 @@
 package main
 
 import (
+	retry "../"
 	"errors"
 	"fmt"
 	"time"
-	retry "../"
 )
 
 func main() {

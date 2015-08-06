@@ -12,29 +12,25 @@ type Operation func() error
 
 type Recursion func(nSub1 time.Duration) (n time.Duration)
 
-type Retry interface {
-	Attempt(op Operation) (int, []error)
-}
-
 //a struct to store retry strategy params
-type retry struct {
+type Retry struct {
 	//switch of randomizing
-	randomize bool
+	Randomize bool
 
 	//sleep time before first retry
-	firstSleep time.Duration
+	FirstSleep time.Duration
 	//range of sleep time
-	minSleep time.Duration
-	maxSleep time.Duration
+	MinSleep time.Duration
+	MaxSleep time.Duration
 
 	//a func to compute sleep time
-	recursion Recursion
+	Recursion Recursion
 
 	//max retry time
-	retries int
+	Retries int
 }
 
-func (r retry) Attempt(op Operation) (retries int, errors []error) {
+func (r Retry) Attempt(op Operation) (retries int, errors []error) {
 	retries = 0
 	errors = nil
 	err := op()
@@ -43,13 +39,13 @@ func (r retry) Attempt(op Operation) (retries int, errors []error) {
 	}
 	errors = make([]error, 0)
 	errors = append(errors, err)
-	sleep := r.firstSleep
-	for retries < r.retries {
+	sleep := r.FirstSleep
+	for retries < r.Retries {
 		time.Sleep(r.limit(sleep))
 		retries++
 		err = op()
 		if err != nil {
-			sleep = r.recursion(sleep)
+			sleep = r.Recursion(sleep)
 			errors = append(errors, err)
 		} else {
 			break
@@ -58,25 +54,25 @@ func (r retry) Attempt(op Operation) (retries int, errors []error) {
 	return retries, errors
 }
 
-func (r retry) limit(d time.Duration) time.Duration {
-	if d > r.maxSleep {
-		return r.maxSleep
+func (r Retry) limit(d time.Duration) time.Duration {
+	if d > r.MaxSleep {
+		return r.MaxSleep
 	}
-	if d < r.minSleep {
-		return r.minSleep
+	if d < r.MinSleep {
+		return r.MinSleep
 	}
 	return d
 }
 
 func Attempt(retries int, firstSleep time.Duration, op Operation) (int, []error){
 
-	r := &retry{
-		randomize:  false,
-		firstSleep: firstSleep,
-		minSleep:   0 * time.Second,
-		maxSleep:   60 * time.Second,
-		recursion:  Double,
-		retries:    retries,
+	r := &Retry{
+		Randomize:  false,
+		FirstSleep: firstSleep,
+		MinSleep:   0 * time.Second,
+		MaxSleep:   60 * time.Second,
+		Recursion:  Double,
+		Retries:    retries,
 	}
 
 	return r.Attempt(op)
