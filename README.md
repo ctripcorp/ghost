@@ -46,6 +46,13 @@ conn.Close()
 
 ## Retry
 
+### Delegate
+
+```go
+type Operation func() error
+type Recursion func(nSub1 time.Duration) (n time.Duration)
+```
+
 ### Simple
 
 ```go
