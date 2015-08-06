@@ -58,7 +58,12 @@ type Recursion func(nSub1 time.Duration) (n time.Duration)
 ```go
 //Retry at most 3 times.
 //Sleeps for 1 second before first retry, and sleep time doubles after each time it retries
-retries, errors := retry.Attempt(3, 1*time.Second, yourOperation)
+retries, errors := retry.Attempt(3, 1*time.Second, func() error{
+	//if error is counted, 
+	//	return the error
+	//if operation is success
+	//	return nil
+})
 ```
 
 ### Custom
