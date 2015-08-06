@@ -5,7 +5,7 @@ import (
 )
 
 var (
-	Double = func(bSub1 time.Duration) (n time.Duration) { return bSub1 * 2 }
+	Double = func(nSub1 time.Duration) (n time.Duration) { return nSub1 * 2 }
 )
 
 type Operation func() error
@@ -13,7 +13,7 @@ type Operation func() error
 type Recursion func(nSub1 time.Duration) (n time.Duration)
 
 type Retry interface {
-	Attemp(op Operation) (int, []error)
+	Attempt(op Operation) (int, []error)
 }
 
 //a struct to store retry strategy params
@@ -34,7 +34,7 @@ type retry struct {
 	retries int
 }
 
-func (r retry) Attemp(op Operation) (retries int, errors []error) {
+func (r retry) Attempt(op Operation) (retries int, errors []error) {
 	retries = 0
 	errors = nil
 	err := op()
@@ -42,6 +42,7 @@ func (r retry) Attemp(op Operation) (retries int, errors []error) {
 		return retries, errors
 	}
 	errors = make([]error, 0)
+	errors = append(errors, err)
 	sleep := r.firstSleep
 	for retries < r.retries {
 		time.Sleep(r.limit(sleep))
@@ -67,7 +68,7 @@ func (r retry) limit(d time.Duration) time.Duration {
 	return d
 }
 
-func Attemp(retries int, firstSleep time.Duration, op Operation) (int, []error){
+func Attempt(retries int, firstSleep time.Duration, op Operation) (int, []error){
 
 	r := &retry{
 		randomize:  false,
@@ -78,5 +79,5 @@ func Attemp(retries int, firstSleep time.Duration, op Operation) (int, []error){
 		retries:    retries,
 	}
 
-	return r.Attemp(op)
+	return r.Attempt(op)
 }
