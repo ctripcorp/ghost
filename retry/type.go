@@ -60,4 +60,3 @@ func (r Retry) limit(d time.Duration) time.Duration {
 	}
 	return d
 }
-

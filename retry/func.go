@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-func Attempt(retries int, firstSleep time.Duration, op Operation) (int, []error){
+func Attempt(retries int, firstSleep time.Duration, op Operation) (int, []error) {
 
 	r := &Retry{
 		Randomize:  false,
