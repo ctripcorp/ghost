@@ -5,5 +5,5 @@ import (
 )
 
 var (
-	Double = func(nSub1 time.Duration) (n time.Duration) { return nSub1 * 2 }
+	Double = func(fir, pre time.Duration) (cur time.Duration) { return pre * 2 }
 )

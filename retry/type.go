@@ -6,7 +6,7 @@ import (
 
 type Operation func() error
 
-type Recursion func(nSub1 time.Duration) (n time.Duration)
+type Recursion func(fir, pre time.Duration) (cur time.Duration)
 
 //a struct to store retry strategy params
 type Retry struct {
@@ -35,13 +35,14 @@ func (r Retry) Attempt(op Operation) (retries int, errors []error) {
 	}
 	errors = make([]error, 0)
 	errors = append(errors, err)
+	fir := r.FirstSleep
 	sleep := r.FirstSleep
 	for retries < r.Retries {
 		time.Sleep(r.limit(sleep))
 		retries++
 		err = op()
 		if err != nil {
-			sleep = r.Recursion(sleep)
+			sleep = r.Recursion(fir, sleep)
 			errors = append(errors, err)
 		} else {
 			break
