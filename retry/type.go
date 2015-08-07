@@ -4,10 +4,6 @@ import (
 	"time"
 )
 
-var (
-	Double = func(nSub1 time.Duration) (n time.Duration) { return nSub1 * 2 }
-)
-
 type Operation func() error
 
 type Recursion func(nSub1 time.Duration) (n time.Duration)
@@ -64,16 +60,3 @@ func (r Retry) limit(d time.Duration) time.Duration {
 	return d
 }
 
-func Attempt(retries int, firstSleep time.Duration, op Operation) (int, []error){
-
-	r := &Retry{
-		Randomize:  false,
-		FirstSleep: firstSleep,
-		MinSleep:   0 * time.Second,
-		MaxSleep:   60 * time.Second,
-		Recursion:  Double,
-		Retries:    retries,
-	}
-
-	return r.Attempt(op)
-}
