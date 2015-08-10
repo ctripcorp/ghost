@@ -28,8 +28,9 @@ func main() {
 	//return nil to announce success
 	//return a counted error to announce failure requesting for retry
 	r.Attempt(func() error {
-		fmt.Printf(time.Now().Format("2006-01-02 15:04:05.000"))
+		fmt.Println(time.Now().Format("+ "+time.Stamp))
 		resp, err := http.Get("http://www.facebook.com/")
+		fmt.Println(time.Now().Format("- "+time.Stamp))
 		if err != nil {
 			//return err to invoke retry
 			return err
