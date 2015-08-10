@@ -70,14 +70,9 @@ retries, errors := retry.Attempt(3, 1*time.Second, func() error{
 
 ```go
 r := &retry.Retry{
-	//switch to activate randomize
-	Randomize: false,
 
 	//time to sleep before first retry
 	FirstSleep: 1 * time.Second,
-	//range of sleep time
-	MinSleep: 0 * time.Second,
-	MaxSleep: 3 * time.Second,
 
 	//sleep time increase or decline
 	//linear:
