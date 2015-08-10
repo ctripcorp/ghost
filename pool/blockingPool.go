@@ -1,9 +1,11 @@
 package pool
 
-import "net"
-import "errors"
-import "sync"
-import "time"
+import (
+	"net"
+	"errors"
+	"sync"
+	"time"
+)
 
 //blockingPool implements the Pool interface.
 //Connestions from blockingPool offer a kind of blocking mechanism that is derived from buffered channel.
@@ -19,6 +21,8 @@ type blockingPool struct {
 
 	//net.Conn generator
 	factory Factory
+
+	livetime time.Duration
 }
 
 //Factory is a function to create new connections
@@ -29,7 +33,7 @@ type Factory func() (net.Conn, error)
 //the number of connections of the pool is kept no more than initCap and maxCap does not 
 //make sense but the api is reserved. The timeout to block Get() is set to 3 by default 
 //concerning that it is better to be related with Get() method.
-func NewBlockingPool(initCap, maxCap int, factory Factory) (Pool, error) {
+func NewBlockingPool(initCap, maxCap int, livetime time.Duration, factory Factory) (Pool, error) {
 	if initCap < 0 || maxCap < 1 || initCap > maxCap {
 		return nil, errors.New("invalid capacity settings")
 	}
@@ -38,6 +42,7 @@ func NewBlockingPool(initCap, maxCap int, factory Factory) (Pool, error) {
 		timeout: 3,
 		conns: make(chan *WrappedConn, maxCap),
 		factory: factory,
+		livetime: livetime,
 	}
 
 	for i := 0; i < initCap; i++ {
@@ -59,6 +64,12 @@ func (p *blockingPool) Get() (net.Conn, error) {
 
 	select {
 	case conn := <-conns:
+		if time.Since(conn.start) > p.livetime {
+			if conn.Conn != nil {
+				conn.Conn.Close()
+				conn.Conn = nil
+			}
+		}
 		if conn.Conn == nil {
 			var err error
 			conn.Conn, err = p.factory()
