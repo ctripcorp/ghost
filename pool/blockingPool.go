@@ -74,6 +74,7 @@ func (p *blockingPool) Get() (net.Conn, error) {
 			var err error
 			conn.Conn, err = p.factory()
 			if err != nil {
+				conn.start = time.Now()
 				p.put(conn)
 				return nil, err
 			}
