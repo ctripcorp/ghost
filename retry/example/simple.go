@@ -8,8 +8,8 @@ import (
 )
 
 func main() {
-	//Retry at most 3 times.
-	//Sleeps for 1 second before first retry, and sleep time doubles after each time it retries
+	//retry at most 3 times.
+	//sleeps for 1 second before each retry
 	retries, errors := retry.Attempt(3, 1*time.Second, func() error {
 		err := errors.New("myError")
 		println(err.Error())
