@@ -50,50 +50,57 @@ conn.Close()
 
 ```go
 type Operation func() error
-type Recursion func(nSub1 time.Duration) (n time.Duration)
+type Transform func(ori time.Duration) (ret time.Duration)
+type Recursion func(fir, pre time.Duration) (cur time.Duration)
 ```
 
 ### Simple
 
 ```go
-//Retry at most 3 times.
-//Sleeps for 1 second before first retry, and sleep time doubles after each time it retries
+//retry at most 3 times.
+//sleeps for 1 second before first retry, and sleep time doubles after each time it retries
 retries, errors := retry.Attempt(3, 1*time.Second, func() error{
-	//if error is counted, 
-	//	return the error
-	//if operation is success
-	//	return nil
+	//on error counted return the error
+	//on success return nil
 })
 ```
 
 ### Custom
 
 ```go
-r := &retry.Retry{
-	//switch to activate randomize
-	Randomize: false,
+r := retry.Retry{
 
 	//time to sleep before first retry
 	FirstSleep: 1 * time.Second,
-	//range of sleep time
-	MinSleep: 0 * time.Second,
-	MaxSleep: 3 * time.Second,
 
 	//sleep time increase or decline
-	//linear:
+	//---linear---
 	//	n = nsub1 + 1
-	//exponent:
+	//--exponent--
 	//	n = nsub1 * 2
+	//or you can use custom recursions besides predefines
+	//example:
+	//
+	//Recursion: 
+	//	func(nsub1 time.Duration) time.Duration {
+	//		return nsub1+1 * time.Second
+	//	},
 	Recursion: retry.Double,
-	//Recursion: func(nsub1 time.Duration) time.Duration {
-	//	return nsub1+1 * time.Second
-	//},
+
+	//sleep time limitation or randomization
+	//----max----
+	//	if ori > 3 * time.Second {
+	//		return 3 * time.Second
+	//	} else {
+	//		return ori
+	//	}
+	Transform: retry.Max(3 * time.Second),
 
 	//max time to retry
 	Retries: 5,
 }
 //return nil to announce success
 //return a counted error to announce failure, requesting for retry
-//see example/custom.go for detail
+//see example/ for detail
 r.Attempt(yourOperation)
 ```

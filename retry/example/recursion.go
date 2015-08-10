@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	r := &retry.Retry{
+	r := retry.Retry{
 		//time to sleep before first retry
 		FirstSleep: 1 * time.Second,
 
@@ -26,10 +26,11 @@ func main() {
 		Retries: 3,
 	}
 	//return nil to announce success
-	//return a counted error to announce failure, requesting for retry
+	//return a counted error to announce failure requesting for retry
 	r.Attempt(func() error {
-		fmt.Printf(time.Now().Format("2006-01-02 15:04:05.000"))
+		fmt.Println(time.Now().Format("+ " + time.Stamp))
 		resp, err := http.Get("http://www.facebook.com/")
+		fmt.Println(time.Now().Format("- " + time.Stamp))
 		if err != nil {
 			//return err to invoke retry
 			return err

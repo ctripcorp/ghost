@@ -6,7 +6,7 @@ import (
 
 func Attempt(retries int, firstSleep time.Duration, op Operation) (int, []error) {
 
-	r := &Retry{
+	r := Retry{
 		FirstSleep: firstSleep,
 		Retries:    retries,
 	}
