@@ -26,6 +26,8 @@ func (c *WrappedConn) Write(b []byte) (n int, err error) {
 	n, err = c.Conn.Write(b)
 	if err != nil {
 		c.unusable = true
+	} else {
+		c.start = time.Now()
 	}
 	return
 }
@@ -36,6 +38,8 @@ func (c *WrappedConn) Read(b []byte) (n int, err error) {
 	n, err = c.Conn.Read(b)
 	if err != nil {
 		c.unusable = true
+	} else {
+		c.start = time.Now()
 	}
 	return
 }
