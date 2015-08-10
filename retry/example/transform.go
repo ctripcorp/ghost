@@ -14,14 +14,17 @@ func main() {
 
 		Recursion: retry.Double,
 
-		//func to limit or randomize sleep time
-		//Transform: func(ori time.Duration)(ret time.Duration) {
-		//	if ori > 5 * time.Second {
-		//		return 5 * time.Second
-		//	} else {
-		//		return ori
-		//	}
-		//},
+		//the func to limit or randomize sleep time
+		//example:
+		//
+		//Transform: 
+		//	func(ori time.Duration)(ret time.Duration) {
+		//		if ori > 5 * time.Second {
+		//			return 5 * time.Second
+		//		} else {
+		//			return ori
+		//		}
+		//	},
 		Transform: retry.Max(3 * time.Second),
 
 		Retries: 5,
