@@ -46,10 +46,7 @@ func NewBlockingPool(initCap, maxCap int, livetime time.Duration, factory Factor
 	}
 
 	for i := 0; i < initCap; i++ {
-		conn, _ := factory()
-		//It doesn't matter if conn it nil, nil is checked whenever Get() is called, 
-		//so error counted from factory() is ignored.
-		newPool.conns <- newPool.wrap(conn)
+		newPool.conns <- newPool.wrap(nil)
 	}
 	return newPool, nil
 }
