@@ -1,6 +1,9 @@
 package pool
 
-import "net"
+import (
+	"net"
+	"time"
+)
 
 //WrappedConn modify the behavior of net.Conn's Write() method and Close() method
 //while other methods can be accessed transparently.
@@ -8,6 +11,7 @@ type WrappedConn struct {
 	net.Conn
 	pool *blockingPool
 	unusable bool
+	start time.Time
 }
 
 //TODO
@@ -22,6 +26,8 @@ func (c *WrappedConn) Write(b []byte) (n int, err error) {
 	n, err = c.Conn.Write(b)
 	if err != nil {
 		c.unusable = true
+	} else {
+		c.start = time.Now()
 	}
 	return
 }
@@ -32,6 +38,8 @@ func (c *WrappedConn) Read(b []byte) (n int, err error) {
 	n, err = c.Conn.Read(b)
 	if err != nil {
 		c.unusable = true
+	} else {
+		c.start = time.Now()
 	}
 	return
 }
@@ -41,5 +49,6 @@ func (p *blockingPool) wrap(conn net.Conn) *WrappedConn {
 		conn,
 		p,
 		false,
+		time.Now(),
 	}
 }
