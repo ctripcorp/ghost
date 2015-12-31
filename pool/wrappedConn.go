@@ -10,28 +10,11 @@ import (
 //while other methods can be accessed transparently.
 type wrappedConn struct {
 	net.Conn
-	pool             *blockingPool
-	unusable         bool
-	inPool           bool
-	liveTime         time.Duration
-	setDelayClose    chan struct{}
-	cancelDelayClose chan struct{}
-}
-
-// setEnterPool will start delay close function and mark inPool = true
-func (c *wrappedConn) setEnterPool() {
-	if c.Conn != nil {
-		c.setDelayClose <- struct{}{}
-	}
-	c.inPool = true
-}
-
-// setOutPool will cancel delay close function and mark inPool = false
-func (c *wrappedConn) setOutPool() {
-	if c.Conn != nil {
-		c.cancelDelayClose <- struct{}{}
-	}
-	c.inPool = false
+	pool       *blockingPool
+	unusable   bool
+	inPool     bool
+	lastAccess time.Time
+	liveTime   time.Duration
 }
 
 //TODO
@@ -47,12 +30,20 @@ func (c *wrappedConn) Close() error {
 	return nil
 }
 
-// closeConnect close inner net.Conn and mark the wrapped connecton unusable
-func (c *wrappedConn) closeConnect() {
-	if c.Conn != nil {
-		c.Conn.Close()
+// checkAlive
+func (c *wrappedConn) checkAlive() (conn net.Conn) {
+	if time.Since(c.lastAccess) > p.liveTime {
+		conn = c.Conn
 		c.Conn = nil
 		c.unusable = true
+	}
+	return
+}
+
+// checkCloseConn
+func (c *wrappedConn) checkCloseConn() {
+	if conn := c.checkAlive(); conn != nil {
+		conn.Close()
 	}
 }
 
@@ -68,6 +59,8 @@ func (c *wrappedConn) Write(b []byte) (n int, err error) {
 	n, err = c.Conn.Write(b)
 	if err != nil {
 		c.unusable = true
+	} else {
+		c.lastAccess = time.Now()
 	}
 	return
 }
@@ -83,31 +76,11 @@ func (c *wrappedConn) Read(b []byte) (n int, err error) {
 	n, err = c.Conn.Read(b)
 	if err != nil {
 		c.unusable = true
+	} else {
+		c.lastAccess = time.Now()
 	}
 
 	return
-}
-
-//delayClose listens on setDelayClose and cancelDelayClose channel. When recveiving from
-//setDelayClose channel, it start a ticker and wait ticker finish or receiving from
-//cancelDelayClose channel
-func (c *wrappedConn) delayClose() {
-	var ticker *time.Ticker
-	for {
-		select {
-		case <-c.setDelayClose:
-			ticker = time.NewTicker(c.liveTime)
-			select {
-			case <-ticker.C:
-				c.closeConnect()
-			case <-c.cancelDelayClose:
-				if ticker != nil {
-					ticker.Stop()
-				}
-			}
-		case <-c.cancelDelayClose:
-		}
-	}
 }
 
 //wrap wraps net.Conn and start a delayClose goroutine
@@ -117,13 +90,7 @@ func (p *blockingPool) wrap(conn net.Conn, livetime time.Duration) *wrappedConn 
 		p,
 		true,
 		true,
+		time.Now(),
 		livetime,
-		make(chan struct{}),
-		make(chan struct{}),
 	}
-
-	go c.delayClose()
-
-	return c
-
 }
