@@ -13,11 +13,14 @@ type blockingPool struct {
 	//mutex is to make closing the pool and recycling the connection an atomic operation
 	mutex sync.Mutex
 
-	//timeout to Get, default to 3
+	//check unalive connections period, default to 5s
+	checkPeriod time.Duration
+
+	//timeout to Get, default to 3s
 	timeout time.Duration
 
 	//storage for net.Conn connections
-	conns *wrappedDeque
+	conns *Deque
 
 	//net.Conn generator
 	factory Factory
@@ -37,15 +40,34 @@ func NewBlockingPool(initCap, maxCap int, livetime time.Duration, factory Factor
 	}
 
 	newPool := &blockingPool{
-		timeout: 3 * time.Second,
-		conns:   newWrappedDeque(maxCap),
-		factory: factory,
+		checkPeriod: 5 * time.Second,
+		timeout:     3 * time.Second,
+		conns:       NewCappedDeque(maxCap),
+		factory:     factory,
 	}
 
 	for i := 0; i < initCap; i++ {
-		newPool.conns.appendTail(newPool.wrap(nil, livetime))
+		newPool.conns.Append(newPool.wrap(nil, livetime))
 	}
+
+	go newPool.checkUnactiveConn()
 	return newPool, nil
+}
+
+func (p *blockingPool) checkUnactiveConn() {
+	for {
+		time.Sleep(p.checkPeriod)
+		result := p.conns.Walk(func(item interface{}) interface{} {
+			c := item.(*wrappedConn)
+			return c.getInactiveNetConn()
+		})
+		for _, v := range result {
+			if v != nil {
+				conn := v.(net.Conn)
+				conn.Close()
+			}
+		}
+	}
 }
 
 //Get blocks for an available connection.
@@ -56,24 +78,25 @@ func (p *blockingPool) Get() (net.Conn, error) {
 		return nil, ErrClosed
 	}
 	// new connection is popped from tail of Deque
-	c, err := p.conns.popTail(p.timeout)
+	item, err := p.conns.Pop(p.timeout)
 	if err != nil {
 		return nil, err
 	}
-	conn := c.(*wrappedConn)
-	//cancel delay close function
-	conn.setOutPool()
+	conn := item.(*wrappedConn)
+	conn.closeInactiveNetConn()
+
 	if conn.Conn == nil {
-		if conn.Conn, err = p.factory(); err != nil {
+		if c, err := p.factory(); err != nil {
 			//conn.Conn is possibly nil coz factory() may fail, in which case conn is immediately
 			//put back to the pool
 			conn.Close()
 			return nil, err
 		} else {
-			conn.unusable = false
+			conn.updateNetConn(c)
 		}
 	}
 
+	conn.inPool = false
 	return conn, nil
 }
 
@@ -83,22 +106,20 @@ func (p *blockingPool) put(conn *wrappedConn) error {
 	//in case that pool is closed and pool.conns is set to nil
 	conns := p.conns
 	if conns == nil {
-		conn.closeConnect()
+		conn.closeNetConn()
 		return ErrClosed
 	}
 
 	if conn.unusable {
 		//if conn is marked unusable, close inner net.Conn, and append it to head of Deque
-		conn.closeConnect()
-		p.conns.appendHead(conn)
+		conn.closeNetConn()
+		p.conns.Prepend(conn)
 
 	} else {
 		//else append conn to tail of Deque
-		p.conns.appendTail(conn)
+		p.conns.Append(conn)
 	}
-	//start delay close function
-	conn.setEnterPool()
-
+	conn.inPool = true
 	return nil
 }
 

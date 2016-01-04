@@ -10,28 +10,11 @@ import (
 //while other methods can be accessed transparently.
 type wrappedConn struct {
 	net.Conn
-	pool             *blockingPool
-	unusable         bool
-	inPool           bool
-	liveTime         time.Duration
-	setDelayClose    chan struct{}
-	cancelDelayClose chan struct{}
-}
-
-// setEnterPool will start delay close function and mark inPool = true
-func (c *wrappedConn) setEnterPool() {
-	if c.Conn != nil {
-		c.setDelayClose <- struct{}{}
-	}
-	c.inPool = true
-}
-
-// setOutPool will cancel delay close function and mark inPool = false
-func (c *wrappedConn) setOutPool() {
-	if c.Conn != nil {
-		c.cancelDelayClose <- struct{}{}
-	}
-	c.inPool = false
+	pool       *blockingPool
+	unusable   bool
+	inPool     bool
+	lastAccess time.Time
+	liveTime   time.Duration
 }
 
 //TODO
@@ -47,12 +30,41 @@ func (c *wrappedConn) Close() error {
 	return nil
 }
 
-// closeConnect close inner net.Conn and mark the wrapped connecton unusable
-func (c *wrappedConn) closeConnect() {
-	if c.Conn != nil {
-		c.Conn.Close()
-		c.Conn = nil
-		c.unusable = true
+// updateNetConn
+func (c *wrappedConn) updateNetConn(newNetConn net.Conn) {
+	c.Conn = newNetConn
+	c.unusable = false
+	c.lastAccess = time.Now()
+}
+
+// setNetConnNil set inner net conn to nil and return old net conn
+func (c *wrappedConn) setNetConnNil() (oldNetConn net.Conn) {
+	oldNetConn = c.Conn
+	c.Conn = nil
+	c.unusable = true
+	c.lastAccess = time.Now()
+	return
+}
+
+// closeNetConn close inner net conn and set it to nil
+func (c *wrappedConn) closeNetConn() {
+	if conn := c.setNetConnNil(); conn != nil {
+		conn.Close()
+	}
+}
+
+// getInactiveNetConn
+func (c *wrappedConn) getInactiveNetConn() (conn net.Conn) {
+	if time.Since(c.lastAccess) > c.liveTime && c.Conn != nil {
+		conn = c.setNetConnNil()
+	}
+	return
+}
+
+// closeInactiveNetConn
+func (c *wrappedConn) closeInactiveNetConn() {
+	if conn := c.getInactiveNetConn(); conn != nil {
+		conn.Close()
 	}
 }
 
@@ -63,11 +75,12 @@ func (c *wrappedConn) Write(b []byte) (n int, err error) {
 		err = fmt.Errorf("write conn fail: conn is in pool")
 		return
 	}
-
 	//c.Conn is certainly not nil
 	n, err = c.Conn.Write(b)
 	if err != nil {
 		c.unusable = true
+	} else {
+		c.lastAccess = time.Now()
 	}
 	return
 }
@@ -83,47 +96,21 @@ func (c *wrappedConn) Read(b []byte) (n int, err error) {
 	n, err = c.Conn.Read(b)
 	if err != nil {
 		c.unusable = true
+	} else {
+		c.lastAccess = time.Now()
 	}
 
 	return
 }
 
-//delayClose listens on setDelayClose and cancelDelayClose channel. When recveiving from
-//setDelayClose channel, it start a ticker and wait ticker finish or receiving from
-//cancelDelayClose channel
-func (c *wrappedConn) delayClose() {
-	var ticker *time.Ticker
-	for {
-		select {
-		case <-c.setDelayClose:
-			ticker = time.NewTicker(c.liveTime)
-			select {
-			case <-ticker.C:
-				c.closeConnect()
-			case <-c.cancelDelayClose:
-				if ticker != nil {
-					ticker.Stop()
-				}
-			}
-		case <-c.cancelDelayClose:
-		}
-	}
-}
-
 //wrap wraps net.Conn and start a delayClose goroutine
 func (p *blockingPool) wrap(conn net.Conn, livetime time.Duration) *wrappedConn {
-	c := &wrappedConn{
+	return &wrappedConn{
 		conn,
 		p,
 		true,
 		true,
+		time.Now(),
 		livetime,
-		make(chan struct{}),
-		make(chan struct{}),
 	}
-
-	go c.delayClose()
-
-	return c
-
 }
