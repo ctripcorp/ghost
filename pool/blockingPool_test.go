@@ -16,16 +16,12 @@ func makeConn() (net.Conn, error) {
 
 func Test_Get(t *testing.T) {
 	pool, _ := NewBlockingPool(5, 5, 10*time.Second, makeConn)
-	var err error
-	conns := make([]net.Conn, 5)
-	for i := 0; i < 5; i++ {
-		conns[i], err = pool.Get()
-		if err != nil {
+	for i := 0; i < 100; i++ {
+		if conn, err := pool.Get(); err != nil {
 			t.Error(err)
+		} else {
+			conn.Close()
 		}
-	}
-	for i := 0; i < 5; i++ {
-		conns[i].Close()
 	}
 }
 
@@ -34,13 +30,21 @@ func Test_Write(t *testing.T) {
 	conn, err := pool.Get()
 	if err != nil {
 		t.Error(err)
-		t.Fail()
 	}
-	conn.Write([]byte("hello world"))
-	conn.Close()
-	if _, err = conn.Write([]byte("hello world")); err.Error() != "write conn fail: conn is in pool" {
+
+	blob := make([]byte, 1024)
+	if _, err = conn.Write(blob); err != nil {
 		t.Error(err)
 	}
+
+	conn.Close()
+	conn, err = pool.Get()
+	if err != nil {
+		t.Error(err)
+	}
+	conn.Write(blob)
+	conn.Close()
+
 }
 
 func Test_Read(t *testing.T) {
@@ -48,7 +52,6 @@ func Test_Read(t *testing.T) {
 	conn, err := pool.Get()
 	if err != nil {
 		t.Error(err)
-		t.Fail()
 	}
 	blob := make([]byte, 1024)
 	conn.Close()

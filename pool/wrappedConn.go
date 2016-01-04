@@ -30,19 +30,40 @@ func (c *wrappedConn) Close() error {
 	return nil
 }
 
-// checkAlive
-func (c *wrappedConn) checkAlive() (conn net.Conn) {
-	if time.Since(c.lastAccess) > p.liveTime {
-		conn = c.Conn
-		c.Conn = nil
-		c.unusable = true
+// updateNetConn
+func (c *wrappedConn) updateNetConn(newNetConn net.Conn) {
+	c.Conn = newNetConn
+	c.unusable = false
+	c.lastAccess = time.Now()
+}
+
+// setNetConnNil set inner net conn to nil and return old net conn
+func (c *wrappedConn) setNetConnNil() (oldNetConn net.Conn) {
+	oldNetConn = c.Conn
+	c.Conn = nil
+	c.unusable = true
+	c.lastAccess = time.Now()
+	return
+}
+
+// closeNetConn close inner net conn and set it to nil
+func (c *wrappedConn) closeNetConn() {
+	if conn := c.setNetConnNil(); conn != nil {
+		conn.Close()
+	}
+}
+
+// getInactiveNetConn
+func (c *wrappedConn) getInactiveNetConn() (conn net.Conn) {
+	if time.Since(c.lastAccess) > c.liveTime && c.Conn != nil {
+		conn = c.setNetConnNil()
 	}
 	return
 }
 
-// checkCloseConn
-func (c *wrappedConn) checkCloseConn() {
-	if conn := c.checkAlive(); conn != nil {
+// closeInactiveNetConn
+func (c *wrappedConn) closeInactiveNetConn() {
+	if conn := c.getInactiveNetConn(); conn != nil {
 		conn.Close()
 	}
 }
@@ -54,7 +75,6 @@ func (c *wrappedConn) Write(b []byte) (n int, err error) {
 		err = fmt.Errorf("write conn fail: conn is in pool")
 		return
 	}
-
 	//c.Conn is certainly not nil
 	n, err = c.Conn.Write(b)
 	if err != nil {
@@ -85,7 +105,7 @@ func (c *wrappedConn) Read(b []byte) (n int, err error) {
 
 //wrap wraps net.Conn and start a delayClose goroutine
 func (p *blockingPool) wrap(conn net.Conn, livetime time.Duration) *wrappedConn {
-	c := &wrappedConn{
+	return &wrappedConn{
 		conn,
 		p,
 		true,

@@ -39,7 +39,7 @@ func (s *Deque) Append(item interface{}) {
 // Prepend appends item to the head of double-end queue
 func (s *Deque) Prepend(item interface{}) {
 	s.queue.prepend(item)
-	q.gate <- struct{}{}
+	s.gate <- struct{}{}
 }
 
 type WalkFunc func(itme interface{}) interface{}
@@ -62,7 +62,7 @@ type deque struct {
 }
 
 // NewCappedDeque creates a Deque with the specified capacity limit.
-func newCappedDeque(capacity int) *Deque {
+func newCappedDeque(capacity int) *deque {
 	return &deque{
 		container: list.New(),
 		capacity:  capacity,
