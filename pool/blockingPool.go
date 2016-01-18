@@ -83,6 +83,7 @@ func (p *blockingPool) Get() (net.Conn, error) {
 		return nil, err
 	}
 	conn := item.(*wrappedConn)
+	conn.inPool = false
 	conn.closeInactiveNetConn()
 
 	if conn.Conn == nil {
@@ -96,7 +97,6 @@ func (p *blockingPool) Get() (net.Conn, error) {
 		}
 	}
 
-	conn.inPool = false
 	return conn, nil
 }
 
